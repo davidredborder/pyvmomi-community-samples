@@ -42,10 +42,13 @@ def main():
     parser = cli.Parser()
     parser.add_custom_argument('-f', '--find', required=False,
                                action='store', help='String to match VM names')
+    parser.add_custom_argument('-v', '--vm-name', required=False, action='store',
+                               help='Exact names of the Virtual Machines to filter')
     args = parser.get_args()
     si = service_instance.connect(args)
 
     try:
+        vmnames = args.vm_name
         content = si.RetrieveContent()
 
         container = content.rootFolder  # starting point to look into
@@ -58,11 +61,14 @@ def main():
         if args.find is not None:
             pat = re.compile(args.find, re.IGNORECASE)
         for child in children:
-            if args.find is None:
+            if args.find is None and args.vm_name is None:
                 print_vm_info(child)
             else:
-                if pat.search(child.summary.config.name) is not None:
-                    print_vm_info(child)
+                if args.find:
+                    if pat.search(child.summary.config.name) is not None:
+                        print_vm_info(child)
+                else:
+                    if child.summary.config.name in vmnames: print_vm_info(child)
 
     except vmodl.MethodFault as error:
         print("Caught vmodl fault : " + error.msg)
